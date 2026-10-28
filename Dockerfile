@@ -1,0 +1,13 @@
+FROM maven:3.9-eclipse-temurin-17 AS build
+WORKDIR /workspace
+COPY pom.xml .
+RUN mvn -B dependency:go-offline
+COPY src ./src
+RUN mvn -B clean verify
+
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+COPY --from=build /workspace/target/denunciaservice-0.0.1-SNAPSHOT.jar app.jar
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70.0"
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]

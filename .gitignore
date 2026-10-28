@@ -1,0 +1,13 @@
+target/
+.env
+.env.*
+!.env.example
+.idea/
+*.iml
+.vscode/
+*.log
+*.pem
+*.key
+*.p12
+.DS_Store
+Thumbs.db

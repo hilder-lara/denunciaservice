@@ -1,0 +1,201 @@
+{
+  "info": {
+    "name": "Denuncias - Lara - Examen 01",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Ejecutar en orden. El POST crea una denuncia FICTICIA y almacena su ID. PUT la atiende. Para demostrar segunda pagina, registra al menos 6 denuncias; scripts/Probar-API.ps1 crea 7. Cambia base_url a la URL real de Render (sin barra final) y ejecuta los 5 endpoints publicos. No contiene claves."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:18080",
+      "type": "string"
+    },
+    {
+      "key": "denuncia_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Registrar denuncia (estado inicial 1)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/denuncias/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"dni\": \"00000001\",\n  \"fecha\": \"2026-10-28T14:30:00\",\n  \"tipo\": \"ROBO\",\n  \"direccion\": \"Direccion ficticia 100\",\n  \"descripcion\": \"Datos ficticios para la demostracion academica.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "const d = pm.response.json();",
+              "pm.test(\"ID generado y estado 1\", () => { pm.expect(d.id).to.be.above(0); pm.expect(d.estado).to.eql(1); });",
+              "pm.collectionVariables.set(\"denuncia_id\", d.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Listar primeras cinco",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/denuncias/?offset=0&limit=5"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const rows = pm.response.json();",
+              "pm.test(\"Array de hasta 5 denuncias\", () => { pm.expect(rows).to.be.an(\"array\"); pm.expect(rows.length).to.be.at.most(5); });",
+              "pm.collectionVariables.set(\"primera_pagina_ids\", JSON.stringify(rows.map(d => d.id)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Obtener denuncia por ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/denuncias/{{denuncia_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"ID coincide\", () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get(\"denuncia_id\"))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Obtener todas por DNI",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/denuncias/ciudadano/00000001"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const rows = pm.response.json();",
+              "pm.test(\"Todas corresponden al DNI\", () => { pm.expect(rows.length).to.be.above(0); rows.forEach(d => pm.expect(d.dni).to.eql(\"00000001\")); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Atender denuncia (PUT sin cuerpo)",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": "{{base_url}}/denuncias/{{denuncia_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Atendida: estado 0\", () => pm.expect(pm.response.json().estado).to.eql(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Verificar atencion persistida",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/denuncias/{{denuncia_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Estado persistido 0\", () => pm.expect(pm.response.json().estado).to.eql(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Cargar siguientes cinco",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/denuncias/?offset=5&limit=5"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const rows = pm.response.json();",
+              "const previous = JSON.parse(pm.collectionVariables.get(\"primera_pagina_ids\") || \"[]\");",
+              "pm.test(\"Paginacion sin repetir IDs\", () => { pm.expect(rows.length).to.be.at.most(5); rows.forEach(d => pm.expect(previous).to.not.include(d.id)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. DNI invalido rechazado",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/denuncias/ciudadano/12"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
